@@ -1,0 +1,45 @@
+---
+title: "Food consumption and CO2 emissions"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## The data
+
+This TidyTuesday dataset (February 18, 2020) comes from nu3's Food
+Carbon Footprint Index 2018, which uses FAO data to estimate how much of
+each food category people eat in 130 countries and the CO2 emissions
+tied to that consumption. Each row is one country and one food category
+(for example beef, rice, or milk), with consumption in kg per person per
+year and emissions in kg of CO2 per person per year. Kasia Kulma scraped
+and cleaned the data for TidyTuesday.
+
+## Plot
+
+```{r}
+library(tidyverse)
+
+food <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-18/food_consumption.csv")
+
+food |>
+  group_by(food_category) |>
+  summarize(median_co2 = median(co2_emmission)) |>
+  ggplot(aes(x = median_co2, y = fct_reorder(food_category, median_co2))) +
+  geom_col(fill = "#1F4E4A") +
+  labs(
+    x = "Median CO2 emissions across countries (kg per person per year)",
+    y = NULL,
+    title = "Beef and dairy have the largest footprints per person"
+  ) +
+  theme_minimal()
+```
+
+## Source
+
+TidyTuesday page:
+<https://github.com/rfordatascience/tidytuesday/tree/main/data/2020/2020-02-18>
+
+Original data: nu3. (2018). *Food carbon footprint index 2018*.
+<https://www.nu3.de/blogs/nutrition/food-carbon-footprint-index-2018>

@@ -1,0 +1,53 @@
+---
+title: "Water access points"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## The data
+
+This TidyTuesday dataset (May 4, 2021) comes from the Water Point Data
+Exchange (WPDx), a platform that pulls together water point records
+collected by governments, NGOs, and researchers. Each row is one water
+point, such as a borehole, well, spring, or tap, with its location,
+country, water source type, install year, and whether water was
+available when it was last checked. The TidyTuesday version keeps a
+subset of columns and is filtered mostly to countries in Africa, with
+about 470,000 water points in total.
+
+## Plot
+
+```{r}
+library(tidyverse)
+
+water <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-05-04/water.csv")
+
+top_countries <- water |>
+  count(country_name, sort = TRUE) |>
+  slice_head(n = 8) |>
+  pull(country_name)
+
+water |>
+  filter(country_name %in% top_countries, !is.na(water_source)) |>
+  mutate(water_source = fct_lump_n(water_source, n = 5)) |>
+  ggplot(aes(y = fct_infreq(country_name), fill = water_source)) +
+  geom_bar(position = "fill") +
+  labs(
+    x = "Share of recorded water points",
+    y = NULL,
+    fill = "Water source",
+    title = "Water source mix in the eight countries with the most records"
+  ) +
+  theme_minimal()
+```
+
+## Source
+
+TidyTuesday page:
+<https://github.com/rfordatascience/tidytuesday/tree/main/data/2021/2021-05-04>
+
+Original data: Water Point Data Exchange. (2021). *Water Point Data
+Exchange (WPDx-Basic)* \[Data set\]. Global Water Challenge.
+<https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-WPDx-Basic-/jfkt-jmqa>

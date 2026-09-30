@@ -1,0 +1,24 @@
+/*-- scss:defaults --*/
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap');
+
+$baobab:  #1F4E4A;
+$ochre:   #C98A1B;
+$sand:    #FBF8F3;
+$ink:     #1C1C1C;
+
+$body-bg: $sand;
+$body-color: $ink;
+$link-color: $baobab;
+$primary: $baobab;
+
+$navbar-bg: $baobab;
+$navbar-fg: #FFFFFF;
+$navbar-hl: $ochre;
+
+$font-family-sans-serif: "Figtree", system-ui, sans-serif;
+$headings-font-weight: 800;
+
+/*-- scss:rules --*/
+h1.title { letter-spacing: -0.02em; }
+a:hover  { color: $ochre; }
+.about-link { border-color: $baobab !important; }

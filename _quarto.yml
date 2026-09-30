@@ -1,0 +1,28 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "El"
+  navbar:
+    left:
+      - href: index.qmd
+        text: About
+      - text: Data Viz
+        menu:
+          - href: water.qmd
+            text: Water access points
+          - href: food.qmd
+            text: Food and CO2 emissions
+    right:
+      - icon: github
+        href: https://github.com/edieye-stack/edieye-stack.github.io-personal-website
+        aria-label: GitHub repo for this site
+  page-footer:
+    left: "Built with Quarto"
+
+format:
+  html:
+    theme: styles.scss
+    toc: true
+    page-layout: full

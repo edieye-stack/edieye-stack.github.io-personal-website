@@ -1,0 +1,79 @@
+[
+  {
+    "objectID": "water.html",
+    "href": "water.html",
+    "title": "Water access points",
+    "section": "",
+    "text": "This TidyTuesday dataset (May 4, 2021) comes from the Water Point Data Exchange (WPDx), a platform that pulls together water point records collected by governments, NGOs, and researchers. Each row is one water point, such as a borehole, well, spring, or tap, with its location, country, water source type, install year, and whether water was available when it was last checked. The TidyTuesday version keeps a subset of columns and is filtered mostly to countries in Africa, with about 470,000 water points in total."
+  },
+  {
+    "objectID": "water.html#the-data",
+    "href": "water.html#the-data",
+    "title": "Water access points",
+    "section": "",
+    "text": "This TidyTuesday dataset (May 4, 2021) comes from the Water Point Data Exchange (WPDx), a platform that pulls together water point records collected by governments, NGOs, and researchers. Each row is one water point, such as a borehole, well, spring, or tap, with its location, country, water source type, install year, and whether water was available when it was last checked. The TidyTuesday version keeps a subset of columns and is filtered mostly to countries in Africa, with about 470,000 water points in total."
+  },
+  {
+    "objectID": "water.html#plot",
+    "href": "water.html#plot",
+    "title": "Water access points",
+    "section": "Plot",
+    "text": "Plot\n\nlibrary(tidyverse)\n\nwater &lt;- read_csv(\"https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-05-04/water.csv\")\n\ntop_countries &lt;- water |&gt;\n  count(country_name, sort = TRUE) |&gt;\n  slice_head(n = 8) |&gt;\n  pull(country_name)\n\nwater |&gt;\n  filter(country_name %in% top_countries, !is.na(water_source)) |&gt;\n  mutate(water_source = fct_lump_n(water_source, n = 5)) |&gt;\n  ggplot(aes(y = fct_infreq(country_name), fill = water_source)) +\n  geom_bar(position = \"fill\") +\n  labs(\n    x = \"Share of recorded water points\",\n    y = NULL,\n    fill = \"Water source\",\n    title = \"Water source mix in the eight countries with the most records\"\n  ) +\n  theme_minimal()"
+  },
+  {
+    "objectID": "water.html#source",
+    "href": "water.html#source",
+    "title": "Water access points",
+    "section": "Source",
+    "text": "Source\nTidyTuesday page: https://github.com/rfordatascience/tidytuesday/tree/main/data/2021/2021-05-04\nOriginal data: Water Point Data Exchange. (2021). Water Point Data Exchange (WPDx-Basic) [Data set]. Global Water Challenge. https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-WPDx-Basic-/jfkt-jmqa"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "El Hadji",
+    "section": "",
+    "text": "Hi, I’m El Hadji. I’m a senior at Pitzer College (Class of 2027) majoring in Organizational Studies with a concentration in Management and a minor in Data Science. I’m originally from Dakar, Senegal.\nI work as a product manager on the Pitzer Hub portal, and I’m interested in how data and product thinking come together, especially in AI products."
+  },
+  {
+    "objectID": "index.html#education",
+    "href": "index.html#education",
+    "title": "El Hadji",
+    "section": "Education",
+    "text": "Education\nPitzer College | Claremont, CA\nB.A. Organizational Studies, Data Science minor | Expected May 2027\nAfrican Institute of Management | Dakar, Senegal\nBBA, Digital Marketing and Management | 2023"
+  },
+  {
+    "objectID": "index.html#about-this-site",
+    "href": "index.html#about-this-site",
+    "title": "El Hadji",
+    "section": "About this site",
+    "text": "About this site\nI built this site with Quarto for DS 002R. The source code is on GitHub."
+  },
+  {
+    "objectID": "food.html",
+    "href": "food.html",
+    "title": "Food consumption and CO2 emissions",
+    "section": "",
+    "text": "This TidyTuesday dataset (February 18, 2020) comes from nu3’s Food Carbon Footprint Index 2018, which uses FAO data to estimate how much of each food category people eat in 130 countries and the CO2 emissions tied to that consumption. Each row is one country and one food category (for example beef, rice, or milk), with consumption in kg per person per year and emissions in kg of CO2 per person per year. Kasia Kulma scraped and cleaned the data for TidyTuesday."
+  },
+  {
+    "objectID": "food.html#the-data",
+    "href": "food.html#the-data",
+    "title": "Food consumption and CO2 emissions",
+    "section": "",
+    "text": "This TidyTuesday dataset (February 18, 2020) comes from nu3’s Food Carbon Footprint Index 2018, which uses FAO data to estimate how much of each food category people eat in 130 countries and the CO2 emissions tied to that consumption. Each row is one country and one food category (for example beef, rice, or milk), with consumption in kg per person per year and emissions in kg of CO2 per person per year. Kasia Kulma scraped and cleaned the data for TidyTuesday."
+  },
+  {
+    "objectID": "food.html#plot",
+    "href": "food.html#plot",
+    "title": "Food consumption and CO2 emissions",
+    "section": "Plot",
+    "text": "Plot\n\nlibrary(tidyverse)\n\nfood &lt;- read_csv(\"https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-02-18/food_consumption.csv\")\n\nfood |&gt;\n  group_by(food_category) |&gt;\n  summarize(median_co2 = median(co2_emmission)) |&gt;\n  ggplot(aes(x = median_co2, y = fct_reorder(food_category, median_co2))) +\n  geom_col(fill = \"#1F4E4A\") +\n  labs(\n    x = \"Median CO2 emissions across countries (kg per person per year)\",\n    y = NULL,\n    title = \"Beef and dairy have the largest footprints per person\"\n  ) +\n  theme_minimal()"
+  },
+  {
+    "objectID": "food.html#source",
+    "href": "food.html#source",
+    "title": "Food consumption and CO2 emissions",
+    "section": "Source",
+    "text": "Source\nTidyTuesday page: https://github.com/rfordatascience/tidytuesday/tree/main/data/2020/2020-02-18\nOriginal data: nu3. (2018). Food carbon footprint index 2018. https://www.nu3.de/blogs/nutrition/food-carbon-footprint-index-2018"
+  }
+]
