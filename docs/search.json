@@ -28,27 +28,6 @@
     "text": "Source\nTidyTuesday page: https://github.com/rfordatascience/tidytuesday/tree/main/data/2021/2021-05-04\nOriginal data: Water Point Data Exchange. (2021). Water Point Data Exchange (WPDx-Basic) [Data set]. Global Water Challenge. https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-WPDx-Basic-/jfkt-jmqa"
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "El Hadji",
-    "section": "",
-    "text": "Hi, I’m El Hadji. I’m a senior at Pitzer College (Class of 2027) majoring in Organizational Studies with a concentration in Management and a minor in Data Science. I’m originally from Dakar, Senegal.\nI work as a product manager on the Pitzer Hub portal, and I’m interested in how data and product thinking come together, especially in AI products."
-  },
-  {
-    "objectID": "index.html#education",
-    "href": "index.html#education",
-    "title": "El Hadji",
-    "section": "Education",
-    "text": "Education\nPitzer College | Claremont, CA\nB.A. Organizational Studies, Data Science minor | Expected May 2027\nAfrican Institute of Management | Dakar, Senegal\nBBA, Digital Marketing and Management | 2023"
-  },
-  {
-    "objectID": "index.html#about-this-site",
-    "href": "index.html#about-this-site",
-    "title": "El Hadji",
-    "section": "About this site",
-    "text": "About this site\nI built this site with Quarto for DS 002R. The source code is on GitHub."
-  },
-  {
     "objectID": "food.html",
     "href": "food.html",
     "title": "Food consumption and CO2 emissions",
@@ -75,5 +54,68 @@
     "title": "Food consumption and CO2 emissions",
     "section": "Source",
     "text": "Source\nTidyTuesday page: https://github.com/rfordatascience/tidytuesday/tree/main/data/2020/2020-02-18\nOriginal data: nu3. (2018). Food carbon footprint index 2018. https://www.nu3.de/blogs/nutrition/food-carbon-footprint-index-2018"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "El Hadji",
+    "section": "",
+    "text": "Hi, I’m El Hadji. I’m a senior at Pitzer College (Class of 2027) majoring in Organizational Studies with a concentration in Management and a minor in Data Science. I’m originally from Dakar, Senegal.\nI work as a product manager on the Pitzer Hub portal, and I’m interested in how data and product thinking come together, especially in AI products."
+  },
+  {
+    "objectID": "index.html#education",
+    "href": "index.html#education",
+    "title": "El Hadji",
+    "section": "Education",
+    "text": "Education\nPitzer College | Claremont, CA\nB.A. Organizational Studies, Data Science minor | Expected May 2027\nAfrican Institute of Management | Dakar, Senegal\nBBA, Digital Marketing and Management | 2023"
+  },
+  {
+    "objectID": "index.html#about-this-site",
+    "href": "index.html#about-this-site",
+    "title": "El Hadji",
+    "section": "About this site",
+    "text": "About this site\nI built this site with Quarto for DS 002R. The source code is on GitHub."
+  },
+  {
+    "objectID": "netflix.html",
+    "href": "netflix.html",
+    "title": "What’s on Netflix? A text analysis",
+    "section": "",
+    "text": "This dataset lists 7,787 movies and TV shows that were on Netflix as of early 2021. Each row is one title, with its type (movie or TV show), director, cast, country, the date Netflix added it, its rating, its length, the genres it is listed under, and a one-sentence description. Almost every useful column is text. A movie’s length is stored as a string like “93 min”, and a TV show’s as “4 Seasons”, so I use string functions and regular expressions to turn that text into something I can count and plot.\nI look at three questions: how long movies run in different genres, what the descriptions talk about, and how many seasons TV shows last.\n\n\nCode\nlibrary(tidyverse)\n\nnetflix &lt;- read_csv(\n  \"https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-04-20/netflix_titles.csv\"\n)"
+  },
+  {
+    "objectID": "netflix.html#the-data",
+    "href": "netflix.html#the-data",
+    "title": "What’s on Netflix? A text analysis",
+    "section": "",
+    "text": "This dataset lists 7,787 movies and TV shows that were on Netflix as of early 2021. Each row is one title, with its type (movie or TV show), director, cast, country, the date Netflix added it, its rating, its length, the genres it is listed under, and a one-sentence description. Almost every useful column is text. A movie’s length is stored as a string like “93 min”, and a TV show’s as “4 Seasons”, so I use string functions and regular expressions to turn that text into something I can count and plot.\nI look at three questions: how long movies run in different genres, what the descriptions talk about, and how many seasons TV shows last.\n\n\nCode\nlibrary(tidyverse)\n\nnetflix &lt;- read_csv(\n  \"https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-04-20/netflix_titles.csv\"\n)"
+  },
+  {
+    "objectID": "netflix.html#how-long-are-movies-in-each-genre",
+    "href": "netflix.html#how-long-are-movies-in-each-genre",
+    "title": "What’s on Netflix? A text analysis",
+    "section": "How long are movies in each genre?",
+    "text": "How long are movies in each genre?\nThe duration column is text, so I pulled out the number with the regular expression ^\\d+(?= min). The (?= min) part is a lookahead: it matches the digits only when ” min” comes right after them, without keeping ” min” in the result. Each title can be listed under several genres separated by commas, so I used the regular expression ^[^,]+ to keep only the first genre listed.\n\n\nCode\nmovies &lt;- netflix |&gt;\n  filter(type == \"Movie\") |&gt;\n  mutate(\n    minutes = as.numeric(str_extract(duration, \"^\\\\d+(?= min)\")),\n    main_genre = str_extract(listed_in, \"^[^,]+\")\n  ) |&gt;\n  filter(!is.na(minutes))\n\ntop_genres &lt;- movies |&gt;\n  count(main_genre, sort = TRUE) |&gt;\n  slice_head(n = 7) |&gt;\n  pull(main_genre)\n\nmovies |&gt;\n  filter(main_genre %in% top_genres) |&gt;\n  mutate(main_genre = fct_reorder(main_genre, minutes, .fun = median)) |&gt;\n  ggplot(aes(x = minutes, y = main_genre)) +\n  geom_boxplot(fill = \"#E8D7B0\", outlier.alpha = 0.3) +\n  labs(\n    x = \"Movie length (minutes)\",\n    y = \"First genre listed\",\n    title = \"Dramas and action movies run longest; stand-up specials are shortest\",\n    subtitle = \"Netflix movies in the seven most common genres\"\n  ) +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\nEach box shows the middle half of movies in a genre, and the line inside it is the median. Stand-up comedy specials are by far the shortest, with a median of 65 minutes. Children’s movies and documentaries come next at about 86-87 minutes. Dramas and action and adventure movies have the longest median, at 108 minutes. Every genre has long tails, with some movies well over two hours."
+  },
+  {
+    "objectID": "netflix.html#what-do-the-descriptions-talk-about",
+    "href": "netflix.html#what-do-the-descriptions-talk-about",
+    "title": "What’s on Netflix? A text analysis",
+    "section": "What do the descriptions talk about?",
+    "text": "What do the descriptions talk about?\nNext I searched each description for five common themes. I made the text lowercase with str_to_lower() and used str_detect() with a regular expression for each theme. \\b marks a word boundary, so \\bfamil(y|ies)\\b matches “family” and “families” but not “familiar”, and \\b(murder\\w*|kill\\w*)\\b catches “murder”, “murderer”, “killer”, and “killing.”\n\n\nCode\ntheme_patterns &lt;- c(\n  \"Love\"           = \"\\\\blove\\\\b\",\n  \"Murder/killing\" = \"\\\\b(murder\\\\w*|kill\\\\w*)\\\\b\",\n  \"Family\"         = \"\\\\bfamil(y|ies)\\\\b\",\n  \"Friendship\"     = \"\\\\bfriends?(hip)?\\\\b\",\n  \"Secrets\"        = \"\\\\bsecrets?\\\\b\"\n)\n\nthemes &lt;- netflix |&gt;\n  mutate(description = str_to_lower(description)) |&gt;\n  select(type, description) |&gt;\n  cross_join(tibble(theme = names(theme_patterns),\n                    pattern = theme_patterns)) |&gt;\n  mutate(mentions = str_detect(description, pattern)) |&gt;\n  group_by(type, theme) |&gt;\n  summarize(share = mean(mentions), .groups = \"drop\") |&gt;\n  mutate(theme = fct_reorder(theme, share))\n\nggplot(themes, aes(x = share, y = theme, fill = type)) +\n  geom_col(position = \"dodge\") +\n  scale_x_continuous(labels = scales::percent) +\n  scale_fill_manual(values = c(\"Movie\" = \"#1F4E4A\", \"TV Show\" = \"#C98A1B\")) +\n  labs(\n    x = \"Share of descriptions mentioning the theme\",\n    y = \"Theme\",\n    fill = \"Type of title\",\n    title = \"TV show descriptions lean toward friends and family\",\n    subtitle = \"Share of Netflix descriptions matching each theme\"\n  ) +\n  theme_minimal()\n\n\n\n\n\n\n\n\n\nFamily and friendship are the most common of these themes, each showing up in roughly 7-9% of descriptions. TV shows mention friendship (9.4%) and family (8.8%) more often than movies do (7.2% and 7.5%), which makes sense for series built around a recurring group of characters. Murder and killing show up about equally in both, around 5.5-5.7%, and secrets are the least common theme."
+  },
+  {
+    "objectID": "netflix.html#how-many-seasons-do-tv-shows-last",
+    "href": "netflix.html#how-many-seasons-do-tv-shows-last",
+    "title": "What’s on Netflix? A text analysis",
+    "section": "How many seasons do TV shows last?",
+    "text": "How many seasons do TV shows last?\nFor TV shows, the duration column says something like “1 Season” or “3 Seasons.” The regular expression ^\\d+(?= Seasons?) uses another lookahead to grab just the number, and the s? makes the final “s” optional so it matches both “Season” and “Seasons.” Then fct_lump_n() groups every show with more than four seasons into an “Other” category, which I relabel as “5 or more.”\n\n\nCode\nnetflix |&gt;\n  filter(type == \"TV Show\") |&gt;\n  mutate(\n    seasons = str_extract(duration, \"^\\\\d+(?= Seasons?)\"),\n    seasons = fct_lump_n(fct_infreq(seasons), n = 4,\n                         other_level = \"5 or more\")\n  ) |&gt;\n  count(seasons) |&gt;\n  mutate(percent = scales::percent(n / sum(n), accuracy = 1)) |&gt;\n  rename(`Seasons on Netflix` = seasons, `TV shows` = n,\n         `Percent` = percent) |&gt;\n  knitr::kable(caption = \"Number of seasons for Netflix TV shows\")\n\n\n\nNumber of seasons for Netflix TV shows\n\n\nSeasons on Netflix\nTV shows\nPercent\n\n\n\n\n1\n1608\n67%\n\n\n2\n382\n16%\n\n\n3\n184\n8%\n\n\n4\n87\n4%\n\n\n5 or more\n149\n6%\n\n\n\n\n\nTwo out of three TV shows on Netflix (67%) have only one season. Only about 16% have two, and the share keeps dropping after that. One reason is that Netflix often cancels shows after a single season, and another is that many international series and limited series are written to be one season long."
+  },
+  {
+    "objectID": "netflix.html#source",
+    "href": "netflix.html#source",
+    "title": "What’s on Netflix? A text analysis",
+    "section": "Source",
+    "text": "Source\nTidyTuesday page: https://github.com/rfordatascience/tidytuesday/tree/main/data/2021/2021-04-20\nOriginal data: Bansal, S. (2021). Netflix movies and TV shows [Data set]. Kaggle. https://www.kaggle.com/datasets/shivamb/netflix-shows. Data collected from Flixable, a third-party Netflix search engine."
   }
 ]

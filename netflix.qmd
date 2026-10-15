@@ -1,0 +1,165 @@
+---
+title: "What's on Netflix? A text analysis"
+execute:
+  echo: true
+  warning: false
+  message: false
+format:
+  html:
+    code-fold: true
+---
+
+## The data
+
+This dataset lists 7,787 movies and TV shows that were on Netflix as of
+early 2021. Each row is one title, with its type (movie or TV show),
+director, cast, country, the date Netflix added it, its rating, its
+length, the genres it is listed under, and a one-sentence description.
+Almost every useful column is text. A movie's length is stored as a
+string like "93 min", and a TV show's as "4 Seasons", so I use string
+functions and regular expressions to turn that text into something I can
+count and plot.
+
+I look at three questions: how long movies run in different genres, what
+the descriptions talk about, and how many seasons TV shows last.
+
+```{r}
+library(tidyverse)
+
+netflix <- read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-04-20/netflix_titles.csv"
+)
+```
+
+## How long are movies in each genre?
+
+The `duration` column is text, so I pulled out the number with the
+regular expression `^\d+(?= min)`. The `(?= min)` part is a
+**lookahead**: it matches the digits only when " min" comes right after
+them, without keeping " min" in the result. Each title can be listed
+under several genres separated by commas, so I used the regular
+expression `^[^,]+` to keep only the first genre listed.
+
+```{r}
+movies <- netflix |>
+  filter(type == "Movie") |>
+  mutate(
+    minutes = as.numeric(str_extract(duration, "^\\d+(?= min)")),
+    main_genre = str_extract(listed_in, "^[^,]+")
+  ) |>
+  filter(!is.na(minutes))
+
+top_genres <- movies |>
+  count(main_genre, sort = TRUE) |>
+  slice_head(n = 7) |>
+  pull(main_genre)
+
+movies |>
+  filter(main_genre %in% top_genres) |>
+  mutate(main_genre = fct_reorder(main_genre, minutes, .fun = median)) |>
+  ggplot(aes(x = minutes, y = main_genre)) +
+  geom_boxplot(fill = "#E8D7B0", outlier.alpha = 0.3) +
+  labs(
+    x = "Movie length (minutes)",
+    y = "First genre listed",
+    title = "Dramas and action movies run longest; stand-up specials are shortest",
+    subtitle = "Netflix movies in the seven most common genres"
+  ) +
+  theme_minimal()
+```
+
+Each box shows the middle half of movies in a genre, and the line inside
+it is the median. Stand-up comedy specials are by far the shortest, with
+a median of 65 minutes. Children's movies and documentaries come next at
+about 86-87 minutes. Dramas and action and adventure movies have the
+longest median, at 108 minutes. Every genre has long tails, with some
+movies well over two hours.
+
+## What do the descriptions talk about?
+
+Next I searched each description for five common themes. I made the
+text lowercase with `str_to_lower()` and used `str_detect()` with a
+regular expression for each theme. `\b` marks a word boundary, so
+`\bfamil(y|ies)\b` matches "family" and "families" but not "familiar",
+and `\b(murder\w*|kill\w*)\b` catches "murder", "murderer", "killer",
+and "killing."
+
+```{r}
+theme_patterns <- c(
+  "Love"           = "\\blove\\b",
+  "Murder/killing" = "\\b(murder\\w*|kill\\w*)\\b",
+  "Family"         = "\\bfamil(y|ies)\\b",
+  "Friendship"     = "\\bfriends?(hip)?\\b",
+  "Secrets"        = "\\bsecrets?\\b"
+)
+
+themes <- netflix |>
+  mutate(description = str_to_lower(description)) |>
+  select(type, description) |>
+  cross_join(tibble(theme = names(theme_patterns),
+                    pattern = theme_patterns)) |>
+  mutate(mentions = str_detect(description, pattern)) |>
+  group_by(type, theme) |>
+  summarize(share = mean(mentions), .groups = "drop") |>
+  mutate(theme = fct_reorder(theme, share))
+
+ggplot(themes, aes(x = share, y = theme, fill = type)) +
+  geom_col(position = "dodge") +
+  scale_x_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("Movie" = "#1F4E4A", "TV Show" = "#C98A1B")) +
+  labs(
+    x = "Share of descriptions mentioning the theme",
+    y = "Theme",
+    fill = "Type of title",
+    title = "TV show descriptions lean toward friends and family",
+    subtitle = "Share of Netflix descriptions matching each theme"
+  ) +
+  theme_minimal()
+```
+
+Family and friendship are the most common of these themes, each showing
+up in roughly 7-9% of descriptions. TV shows mention friendship (9.4%)
+and family (8.8%) more often than movies do (7.2% and 7.5%), which makes
+sense for series built around a recurring group of characters. Murder
+and killing show up about equally in both, around 5.5-5.7%, and secrets
+are the least common theme.
+
+## How many seasons do TV shows last?
+
+For TV shows, the `duration` column says something like "1 Season" or
+"3 Seasons." The regular expression `^\d+(?= Seasons?)` uses another
+lookahead to grab just the number, and the `s?` makes the final "s"
+optional so it matches both "Season" and "Seasons." Then
+`fct_lump_n()` groups every show with more than four seasons into an
+"Other" category, which I relabel as "5 or more."
+
+```{r}
+netflix |>
+  filter(type == "TV Show") |>
+  mutate(
+    seasons = str_extract(duration, "^\\d+(?= Seasons?)"),
+    seasons = fct_lump_n(fct_infreq(seasons), n = 4,
+                         other_level = "5 or more")
+  ) |>
+  count(seasons) |>
+  mutate(percent = scales::percent(n / sum(n), accuracy = 1)) |>
+  rename(`Seasons on Netflix` = seasons, `TV shows` = n,
+         `Percent` = percent) |>
+  knitr::kable(caption = "Number of seasons for Netflix TV shows")
+```
+
+Two out of three TV shows on Netflix (67%) have only one season. Only
+about 16% have two, and the share keeps dropping after that. One reason
+is that Netflix often cancels shows after a single season, and another
+is that many international series and limited series are written to be
+one season long.
+
+## Source
+
+TidyTuesday page:
+<https://github.com/rfordatascience/tidytuesday/tree/main/data/2021/2021-04-20>
+
+Original data: Bansal, S. (2021). *Netflix movies and TV shows*
+\[Data set\]. Kaggle.
+<https://www.kaggle.com/datasets/shivamb/netflix-shows>. Data collected
+from Flixable, a third-party Netflix search engine.

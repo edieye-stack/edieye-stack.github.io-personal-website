@@ -14,6 +14,8 @@ website:
             text: Water access points
           - href: food.qmd
             text: Food and CO2 emissions
+          - href: netflix.qmd
+            text: Netflix titles
     right:
       - icon: github
         href: https://github.com/edieye-stack/edieye-stack.github.io-personal-website
