@@ -1,4 +1,3 @@
-
 ---
 title: "The Birthday Paradox: A Simulation Study"
 subtitle: "How Group Size Changes the Probability of Shared Birthdays"
