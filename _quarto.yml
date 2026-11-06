@@ -16,6 +16,8 @@ website:
             text: Food and CO2 emissions
           - href: netflix.qmd
             text: Netflix titles
+            - href: simulation.qmd
+            text: Project 3: Birthday Paradox
     right:
       - icon: github
         href: https://github.com/edieye-stack/edieye-stack.github.io-personal-website
