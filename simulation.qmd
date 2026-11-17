@@ -1,8 +1,8 @@
 ---
-title: "The Birthday Paradox: A Simulation Study"
-subtitle: "How Group Size Changes the Probability of Shared Birthdays"
+title: "Beating the Traffic: A Simulation Study"
+subtitle: "How Traffic Light Timing Affects Vehicle Waiting Times"
 author: "El Hadji Dieye"
-date: "November 1, 2026"
+date: "November 16, 2026"
 format:
   html:
     toc: true
@@ -15,26 +15,37 @@ execute:
 
 ## Introduction
 
-Have you ever wondered how many people need to be in a room before there is a good chance that at least two of them share the same birthday? Surprisingly, the answer is much smaller than most people expect, like we did in class.
-
-For this project, I investigate how the number of people in a group affects the probability that at least two individuals share a birthday. I use a simulation in R to generate thousands of groups of different sizes and calculate how frequently a shared birthday occurs. I also compare the simulated probabilities with their theoretical values to understand how accurately the simulation represents the mathematical relationship.
+Traffic lights help manage the movement of vehicles at busy intersections, but the amount of time allocated to red and green lights can affect how long drivers wait. In this project, I investigate how different traffic light schedules perform under light, moderate, and heavy traffic conditions. I use simulation in R to generate random vehicle arrivals, model waiting lines, and compare the average waiting times produced by two different traffic light systems.
 
 ## Understanding the Problem
 
-The Birthday Paradox is a probability problem that examines the likelihood of at least two people sharing a birthday in a group.
+For this study, I compare two traffic light systems that each have a 100-second cycle.
 
-For this simulation, I make the following assumptions:
+- **System A:** 40 seconds of green light and 60 seconds of red light.
+- **System B:** 60 seconds of green light and 40 seconds of red light.
 
-- There are 365 possible birthdays in a year.
-- February 29 is excluded.
-- Each birthday is equally likely.
-- Birthdays are independent of one another.
+I also examine three different traffic conditions:
+
+- Light traffic: 4 vehicles arriving per minute.
+- Moderate traffic: 8 vehicles arriving per minute.
+- Heavy traffic: 12 vehicles arriving per minute.
 
 The research question is:
 
-**How does increasing the number of people in a group affect the probability that at least two people share a birthday?**
+**How does traffic light timing affect average vehicle waiting time under different traffic conditions?**
 
-This is interesting because our intuition often suggests that a much larger group is needed before a shared birthday becomes likely. However, probability theory predicts that in a group of just 23 people, the probability is already greater than 50%.
+### Simulation assumptions
+
+To keep the simulation manageable, I make the following assumptions:
+
+- Vehicles arrive randomly according to a Poisson process.
+- Each traffic light has a fixed 100-second cycle.
+- A vehicle can pass through the intersection every 3 seconds during a green light.
+- Vehicles arrive from one direction and wait in a single queue.
+- Vehicles are served in the order they arrive.
+- No new vehicles arrive after the one-hour observation period, but the simulation continues until the remaining queue clears.
+
+These assumptions allow me to compare the two traffic light schedules under the same conditions.
 
 ## Creating the Simulation
 
@@ -43,160 +54,204 @@ First, I load the packages needed for the simulation and visualization.
 ```{r}
 library(tidyverse)
 library(purrr)
-library(ggplot2)
 ```
 
-### Writing a simulation function
+### Writing the simulation function
 
-I begin by writing a function called `simulate_birthday()`. This function generates a random birthday for each person in a group. It then checks whether any birthdays are repeated.
-
-The function returns TRUE if at least two people share a birthday and FALSE otherwise.
+I create a function called `simulate_traffic()`. It simulates vehicle arrivals over one hour, tracks the traffic light, and calculates how long each vehicle waits before passing through the intersection.
 
 ```{r}
-simulate_birthday <- function(n) {
+simulate_traffic <- function(
+  arrival_rate,
+  green_seconds,
+  simulation_minutes = 60,
+  service_seconds = 3
+) {
 
-  birthdays <- sample(
-    1:365,
-    size = n,
-    replace = TRUE
+  simulation_seconds <- simulation_minutes * 60
+
+  queue <- numeric(0)
+  wait_times <- numeric(0)
+
+  max_queue <- 0
+  time <- 0
+
+  next_service_time <- 0
+
+  while (
+    time < simulation_seconds ||
+    length(queue) > 0
+  ) {
+
+    # Generate random vehicle arrivals
+    if (time < simulation_seconds) {
+
+      arrivals <- rpois(
+        1,
+        lambda = arrival_rate / 60
+      )
+
+      if (arrivals > 0) {
+        queue <- c(
+          queue,
+          rep(time, arrivals)
+        )
+      }
+    }
+
+    # Track the largest queue
+    max_queue <- max(
+      max_queue,
+      length(queue)
+    )
+
+    # Determine the traffic light position
+    cycle_position <- time %% 100
+
+    is_green <- cycle_position < green_seconds
+
+    # Allow one vehicle to pass every 3 seconds
+    if (
+      is_green &&
+      length(queue) > 0 &&
+      time >= next_service_time
+    ) {
+
+      arrival_time <- queue[1]
+
+      wait_times <- c(
+        wait_times,
+        time - arrival_time
+      )
+
+      queue <- queue[-1]
+
+      next_service_time <- time + service_seconds
+    }
+
+    time <- time + 1
+  }
+
+  tibble(
+    total_vehicles = length(wait_times),
+    average_wait = mean(wait_times) / 60,
+    median_wait = median(wait_times) / 60,
+    maximum_wait = max(wait_times) / 60,
+    maximum_queue = max_queue
   )
-
-  any(duplicated(birthdays))
 }
 ```
 
-This function allows me to simulate groups of different sizes without having to write separate code for each group.
+The function returns the total number of vehicles served, their average waiting time, their median waiting time, their maximum waiting time, and the largest queue observed.
+
+### Setting up the experiments
+
+Next, I define the traffic conditions and the two traffic light systems.
+
+```{r}
+traffic_conditions <- tibble(
+  traffic_condition = factor(
+    c("Light", "Moderate", "Heavy"),
+    levels = c("Light", "Moderate", "Heavy")
+  ),
+  arrival_rate = c(4, 8, 12)
+)
+
+traffic_systems <- tibble(
+  system = c(
+    "System A",
+    "System B"
+  ),
+  green_seconds = c(40, 60)
+)
+
+simulation_design <- tidyr::crossing(
+  traffic_conditions,
+  traffic_systems
+)
+
+simulation_design
+```
+
+This creates six experimental combinations: three traffic conditions tested under two traffic light systems.
 
 ### Running repeated simulations
 
-A single simulation is not enough to estimate a probability reliably. Therefore, I repeat the experiment 5,000 times for each group size.
+A single simulation may produce unusual results because vehicle arrivals are random. To obtain more reliable estimates, I repeat each experiment 1,000 times.
 
-I use `map()` from the purrr package to apply the simulation across different group sizes. Within each group size, I use `map_lgl()` to repeat the experiment and record whether a shared birthday occurred.
+I use `map_dfr()` to repeat the simulation for every experimental combination and combine the results into one dataset.
 
 ```{r}
 set.seed(123)
 
-n_sims <- 5000
+n_sims <- 1000
 
-group_sizes <- 2:60
+results <- map_dfr(
+  seq_len(nrow(simulation_design)),
+  function(i) {
 
-simulation_results <- map_dfr(
-  group_sizes,
-  function(n) {
+    design <- simulation_design[i, ]
 
-    outcomes <- map_lgl(
-      1:n_sims,
-      ~ simulate_birthday(n)
+    simulation_runs <- map_dfr(
+      seq_len(n_sims),
+      function(sim) {
+
+        simulate_traffic(
+          arrival_rate = design$arrival_rate,
+          green_seconds = design$green_seconds
+        )
+      }
     )
 
-    tibble(
-      group_size = n,
-      probability = mean(outcomes)
-    )
+    simulation_runs |>
+      summarise(
+        across(everything(), mean)
+      ) |>
+      mutate(
+        traffic_condition = design$traffic_condition,
+        system = design$system,
+        arrival_rate = design$arrival_rate
+      )
   }
 )
 
-head(simulation_results)
+results
 ```
 
-The resulting dataset contains each group size and its estimated probability of having at least two people with the same birthday.
-
-### Calculating theoretical probabilities
-
-To evaluate the accuracy of my simulation, I also calculate the theoretical probability of a shared birthday.
-
-Rather than calculating the probability of a match directly, I first calculate the probability that everyone has a different birthday. I then subtract that probability from one.
-
-```{r}
-birthday_theory <- function(n) {
-
-  probability_no_match <- prod(
-    (365 - 0:(n - 1)) / 365
-  )
-
-  1 - probability_no_match
-}
-
-theoretical_results <- tibble(
-  group_size = group_sizes,
-  theoretical_probability = map_dbl(
-    group_sizes,
-    birthday_theory
-  )
-)
-
-```
-
-I combine the simulated and theoretical probabilities into one dataset for comparison.
-
-```{r}
-final_results <- left_join(
-  simulation_results,
-  theoretical_results,
-  by = "group_size"
-)
-
-head(final_results)
-```
+The resulting dataset contains the average simulation outcomes for each traffic condition and traffic light system.
 
 ## Visualizing the Results
 
-The following graph compares the probabilities estimated through simulation with the theoretical probabilities for groups ranging from 2 to 60 people.
+I use a bar chart to compare average vehicle waiting times across the three traffic conditions.
 
 ```{r}
-ggplot(final_results, aes(x = group_size)) +
+ggplot(
+  results,
+  aes(
+    x = traffic_condition,
+    y = average_wait,
+    fill = system
+  )
+) +
 
-  geom_line(
-    aes(
-      y = probability,
-      color = "Simulated probability"
-    ),
-    linewidth = 1
-  ) +
-
-  geom_line(
-    aes(
-      y = theoretical_probability,
-      color = "Theoretical probability"
-    ),
-    linewidth = 1,
-    linetype = "dashed"
-  ) +
-
-  geom_hline(
-    yintercept = 0.5,
-    color = "gray40",
-    linetype = "dotted"
-  ) +
-
-  geom_vline(
-    xintercept = 23,
-    color = "gray40",
-    linetype = "dotted"
-  ) +
-
-  scale_y_continuous(
-    labels = scales::percent,
-    limits = c(0, 1)
-  ) +
-
-  scale_x_continuous(
-    breaks = seq(0, 60, by = 5)
-  ) +
-
-  scale_color_manual(
-    name = "Probability type",
-    values = c(
-      "Simulated probability" = "#2878B5",
-      "Theoretical probability" = "#E07A35"
-    )
+  geom_col(
+    position = "dodge",
+    width = 0.7
   ) +
 
   labs(
-    title = "The Birthday Paradox",
-    subtitle = "Probability of at least two people sharing a birthday",
-    x = "Number of people in the group",
-    y = "Probability of a shared birthday"
+    title = "How Traffic Light Timing Affects Waiting Time",
+    subtitle = "Average vehicle waiting time across 1,000 simulations",
+    x = "Traffic condition",
+    y = "Average waiting time (minutes)",
+    fill = "Traffic light system"
+  ) +
+
+  scale_fill_manual(
+    values = c(
+      "System A" = "#2878B5",
+      "System B" = "#E07A35"
+    )
   ) +
 
   theme_minimal(base_size = 12) +
@@ -207,29 +262,57 @@ ggplot(final_results, aes(x = group_size)) +
   )
 ```
 
-### Interpreting the Visualization
+### Comparing Maximum Queue Sizes
 
-The graph illustrates a clear positive relationship between group size and the probability of sharing a birthday. As the number of people increases, the probability of at least one shared birthday also increases.
-
-One particularly interesting observation is that the probability exceeds 50% at approximately 23 people. This is surprising because many people might expect that a much larger group would be necessary.
-
-The simulated probabilities generally follow the theoretical probabilities closely. Small differences between the two lines are expected because the simulation uses a finite number of repetitions rather than examining every possible birthday combination.
-
-## Examining the 23-Person Group
-
-To better understand the result, I examine the theoretical and simulated probabilities specifically for a group of 23 people.
+I also compare the average maximum queue size under each traffic condition.
 
 ```{r}
-final_results |>
-  filter(group_size == 23)
+ggplot(
+  results,
+  aes(
+    x = traffic_condition,
+    y = maximum_queue,
+    fill = system
+  )
+) +
+
+  geom_col(
+    position = "dodge",
+    width = 0.7
+  ) +
+
+  labs(
+    title = "Comparing Maximum Queue Sizes",
+    subtitle = "Average maximum number of vehicles waiting",
+    x = "Traffic condition",
+    y = "Average maximum queue size",
+    fill = "Traffic light system"
+  ) +
+scale_fill_manual(
+  values = c(
+    "System A" = "#2878B5",
+    "System B" = "#E07A35"
+  )
+) +
+  
+  theme_minimal(base_size = 12) +
+
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold")
+  )
 ```
 
-At 23 people, the theoretical probability of at least two people sharing a birthday is approximately 50.7%. This means that a shared birthday is actually more likely than not, even in a relatively small group.
+## Interpreting the Results
+
+The visualizations allow me to compare how different traffic light schedules perform as the number of arriving vehicles increases.
+
+I expect System B to perform better because it provides more green-light time, allowing more vehicles to pass through the intersection. However, the difference between the systems may become more noticeable under moderate and heavy traffic conditions.
+
+When traffic volume becomes too high relative to the intersection's capacity, queues can grow and waiting times can increase substantially. The simulation helps demonstrate how traffic light timing and vehicle arrival rates work together to influence congestion.
+
+The results represent a simplified intersection rather than actual measured traffic conditions.
 
 ## Conclusion
 
-This simulation demonstrates how quickly the probability of sharing a birthday increases as the size of a group grows. The results show that only 23 people are needed for the probability of at least one shared birthday to exceed 50%, which is much lower than many people would intuitively expect. Comparing the simulated results with the theoretical probabilities also demonstrates how repeated random sampling can approximate mathematical probabilities. Overall, this project shows how simulation can help us understand probability problems that are not immediately intuitive.
-
-## What I Did
-
-For this project, I developed an R function to generate random birthdays and identify whether a group contained at least one shared birthday. I used `map()` and `map_lgl()` to repeat this experiment 5,000 times across 59 different group sizes. I then compared the estimated probabilities with their theoretical values using a visualization created with ggplot2. Through this process, I demonstrated how simulation can be used to investigate probability and compare experimental results with mathematical expectations.
+In this project, I developed an R function to simulate vehicle arrivals, traffic light cycles, and waiting lines at an intersection. I compared two traffic light schedules under light, moderate, and heavy traffic conditions using 1,000 repeated simulations for each combination. The results allowed me to investigate how allocating more green-light time can influence average waiting times and queue sizes. Overall, this project demonstrates how simulation can help evaluate different systems and understand how random arrivals affect real-world processes.
